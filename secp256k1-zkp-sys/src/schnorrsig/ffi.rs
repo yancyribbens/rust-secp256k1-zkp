@@ -25,8 +25,29 @@ use types::{c_int, c_uchar, c_void};
 /// Library-internal representation of a Secp256k1 Schnorr signature
 #[repr(C)]
 pub struct SchnorrSignature([c_uchar; 64]);
+pub struct PublicKeyBuff([c_uchar; 33]);
+
 impl_array_newtype!(SchnorrSignature, c_uchar, 64);
 impl_raw_debug!(SchnorrSignature);
+
+impl_array_newtype!(PublicKeyBuff, c_uchar, 33);
+impl_raw_debug!(PublicKeyBuff);
+
+impl PublicKeyBuff {
+    /// Create a new (zeroed) buffer for storing a public key
+    pub fn new() -> PublicKeyBuff {
+        PublicKeyBuff([0; 33])
+    }
+
+    /// Create a new (uninitialized) buffer for the FFI interface
+    pub unsafe fn blank() -> PublicKeyBuff {
+        mem::uninitialized()
+    }
+
+    // TODO
+    // I _think_ we next want some method which will cast the buffer into
+    // a secp256k1 object
+}
 
 impl SchnorrSignature {
     /// Create a new (zeroed) signature usable for the FFI interface
@@ -60,6 +81,14 @@ extern "C" {
         sk: *const c_uchar,
         noncefn: NonceFn,
         noncedata: *mut c_void,
+    ) -> c_int;
+
+    pub fn secp256k1_schnorrsig_sig_pubkey(
+        cx: *const Context,
+        sp: *const PublicKeyBuff,
+        r: *const PublicKey,
+        msg32: *const c_uchar,
+        pk: *const PublicKey
     ) -> c_int;
 
     pub fn secp256k1_zkp_schnorrsig_verify(

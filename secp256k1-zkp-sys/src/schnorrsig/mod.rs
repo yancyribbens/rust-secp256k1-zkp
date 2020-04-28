@@ -172,6 +172,8 @@ impl<'de> ::serde::Deserialize<'de> for Signature {
 pub trait Sign {
     /// Creates a Schnorr signature as defined by BIP-schnorr from a message and a secret key.
     fn schnorrsig_sign(&self, msg: &Message, sk: &SecretKey) -> Signature;
+
+    fn secp256k1_schnorrsig_sig_pubkey(&self, r: &PublicKey, msg: &Message, pk: &PublicKey) -> Option<ffi::PublicKeyBuff>;
 }
 
 /// Schnorrsig verification trait
@@ -216,6 +218,26 @@ impl<C: Signing> Sign for Secp256k1<C> {
             );
         }
         Signature::from(ret)
+    }
+
+    fn secp256k1_schnorrsig_sig_pubkey(&self, r: &PublicKey, msg: &Message, pk: &PublicKey) -> Option<ffi::PublicKeyBuff> {
+        let mut buf = unsafe { ffi::PublicKeyBuff::blank() };
+        unsafe {
+            if ffi::secp256k1_schnorrsig_sig_pubkey(
+                    *self.ctx(),
+                    &mut buf,
+                    r.as_ptr(),
+                    msg.as_ptr(),
+                    pk.as_ptr()
+                ) == 0
+            {
+                //Todo change Error returned
+                return None
+            } else {
+                return Some(buf)
+            }
+        }
+        None
     }
 }
 
